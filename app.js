@@ -22,15 +22,21 @@ app.get("/", (req, res) => {
 // ===== CREATE USER & SEND EMAIL =====
 app.post("/api/user", async (req, res) => {
   try {
-    const user = new User(req.body);
-    await user.save();
+    // Check if user already exists
+    let user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      // Create new user if doesn't exist
+      user = new User(req.body);
+      await user.save();
+    }
 
     // Send email
     await sendUserEmail(req.body);
 
     res.json({
       success: true,
-      message: "User registered successfully and email sent!",
+      message: "please input correct information!",
     });
   } catch (error) {
     console.error("Error submitting user:", error.message);
