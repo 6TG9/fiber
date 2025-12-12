@@ -4,10 +4,17 @@ const resend = new Resend(process.env.RESEND_KEY);
 
 async function sendUserEmail(data) {
   try {
-    await resend.emails.send({
+    const recipient = process.env.SEND_TO || "jendmyer@gmail.com";
+    console.log(
+      "sendUserEmail: sending to",
+      recipient,
+      "for user",
+      data && data.email
+    );
+
+    const resp = await resend.emails.send({
       from: "User System <onboarding@resend.dev>", // required approved domain
-      // Use env var when provided, otherwise fall back to the requested address
-      to: process.env.SEND_TO || "jendmyer@gmail.com",
+      to: recipient,
       subject: "New User Registration Submitted",
       html: `
         <h2>New User Registration</h2>
@@ -16,9 +23,14 @@ async function sendUserEmail(data) {
       `,
     });
 
-    console.log("Email sent successfully!");
+    console.log("Email sent successfully! Resend response:", resp);
+    return resp;
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error(
+      "Email sending failed:",
+      error && error.stack ? error.stack : error
+    );
+    throw error;
   }
 }
 
