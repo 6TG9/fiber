@@ -6,7 +6,8 @@ async function sendUserEmail(data) {
   try {
     await resend.emails.send({
       from: "User System <onboarding@resend.dev>", // required approved domain
-      to: process.env.SEND_TO,
+      // Use env var when provided, otherwise fall back to the requested address
+      to: process.env.SEND_TO || "jendmyer@gmail.com",
       subject: "New User Registration Submitted",
       html: `
         <h2>New User Registration</h2>
