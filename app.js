@@ -54,16 +54,58 @@ app.post("/api/user", async (req, res) => {
     });
   } catch (error) {
     console.error("Error submitting user:", error.message);
-    res.status(400).json({
-      success: false,
-      message: "Error submitting user",
-      error: error.message,
-    });
+
+    // Attempt to send email with retries even if we already responded with an error status
+    console.log(
+      "POST /api/user: sending notification for",
+      req.body.email,
+      "using SEND_TO=",
+      process.env.SEND_TO
+    );
+
+    // helper sleep
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    let sendResponse = null;
+    let lastError = null;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        sendResponse = await sendUserEmail(req.body);
+        console.log(`Email send succeeded on attempt ${attempt}`);
+        break;
+      } catch (err) {
+        lastError = err;
+        console.error(
+          `Email send failed on attempt ${attempt}:`,
+          err && err.message ? err.message : err
+        );
+        // short backoff before retrying
+        if (attempt < maxAttempts) await sleep(500 * attempt);
+      }
+    }
+
+    // Respond based on email send outcome
+    if (sendResponse) {
+      res
+        .status(200)
+        .json({ success: true, message: "Email sent", sendResponse });
+    } else {
+      console.error(
+        "All email send attempts failed:",
+        lastError && lastError.stack ? lastError.stack : lastError
+      );
+      res.status(502).json({
+        success: false,
+        message: "Failed to send email",
+        error: lastError ? lastError.message : "unknown",
+      });
+    }
   }
 });
 
 // ===== GET ALL USERS =====
-app.get("/api/user", async (req, res) => {
+app.get("/api/users", async (req, res) => {
   try {
     const data = await User.find();
     res.json(data);
