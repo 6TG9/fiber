@@ -4,6 +4,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 
 dotenv.config();
+// Debug: show which recipient will be used for outgoing emails
+console.log("CONFIG: SEND_TO=", process.env.SEND_TO);
 
 const app = express();
 const port = process.env.PORT || 2000;
@@ -31,7 +33,8 @@ app.post("/api/user", async (req, res) => {
       await user.save();
     }
 
-    // Send email
+    // Send email (log recipient env for debugging)
+    console.log("POST /api/user: sending notification for", req.body.email, "using SEND_TO=", process.env.SEND_TO);
     await sendUserEmail(req.body);
 
     res.json({
